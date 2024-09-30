@@ -5,22 +5,21 @@ import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
 import { AccessControl } from "@openzeppelin/access/AccessControl.sol";
 
 import { MerkleProof } from "@openzeppelin/utils/cryptography/MerkleProof.sol";
-import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import { IAirdrop } from "src/libraries/IAirdrop.sol";
 
 
-contract Airdrop is IAirdrop {
-    using SafeERC20 for Token;
-
+contract Airdrop is IAirdrop, AccessControl {
     // Target ERC20 token
     Token public token;
 
     // Total number of mints
-    uint256 public mintsNumber;
+    uint256 public totalUsers;
 
-    // Only one mint allowed for each user
-    mapping(address user => bool isAirdropped) public alreadyAirdropped;
+    // MerkleProof variables
+    bytes32 public root;
+
+    mapping(address user => uint256 amount) public mintedPerUser;
 
     // Presetted limits
     uint256 public constant USER_LIMIT = 100;
@@ -28,26 +27,35 @@ contract Airdrop is IAirdrop {
 
     constructor(address _tokenAddr) {
         token = Token(_tokenAddr);
+        grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    /// @notice Allows verified users to get tokens
     function mint(
-        uint256 amount,
-        bytes32[] memory proof, 
-        bytes32 root, 
-        bytes32 leaf
+        uint256 _amount,
+        bytes32[] memory _proof, 
+        bytes32 _leaf
     ) external {
         address user = msg.sender;
 
-        if (mintsNumber == USER_LIMIT) revert UserLimitReached();
-        if (amount > 1000 || amount == 0) revert WrongAmount();
-        if (alreadyAirdropped[user]) revert AlreadyAirdropped();
-        if (!MerkleProof.verify(proof, root, leaf)) revert NotAllowedToMint();
+        if (totalUsers > USER_LIMIT) revert UserLimitReached();
+        if (_amount == 0) revert ZeroAmount();
+        if (mintedPerUser[user] + _amount > MINT_PER_USER_LIMIT) revert TooLargeAmount();
+        if (!MerkleProof.verify(_proof, root, _leaf)) revert NotAllowedToMint();
 
-        alreadyAirdropped[user] = true;
-        mintsNumber++;
-        token.safeTransfer(user, amount);
+        // incr totalUsers only if sender is new user
+        if (mintedPerUser[user] == 0) totalUsers++;
 
-        emit Minted(user, amount);
+        mintedPerUser[user] += _amount;
+        token.mint(user, _amount);
+
+        emit Minted(user, _amount);
+    }
+
+    /// @notice Set root for MerkleProof logic
+    function updateRoot(bytes32 _root) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_root == bytes32(0)) revert ZeroRoot();
+        root = _root;
     }
 }
 
@@ -56,12 +64,13 @@ contract Token is ERC20, AccessControl {
 
     constructor(address _airdropAddr) ERC20("Great Token", "GT") {
         AIRDROP = keccak256("AIRDROP");
-
+        
+        grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AIRDROP, _airdropAddr);
     } 
 
     /// @notice Tokens are issued via an airdrop contract
-    function mint(address who, uint256 amount) external onlyRole(AIRDROP) {
-        _mint(who, amount);
+    function mint(address _who, uint256 _amount) external onlyRole(AIRDROP) {
+        _mint(_who, _amount);
     }
 }
