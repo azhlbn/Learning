@@ -22,6 +22,8 @@ contract Gr8TokenPermit is IGr8TokenPermit, ERC20Permit, Ownable2Step {
     function mint(address _who, uint256 _amount) external onlyOwner {
         if (totalSupply() + _amount > SUPPLY_LIMIT) revert SupplyLimitReached();
         _mint(_who, _amount);
+
+        emit Minted(_who, _amount);
     }
 
     /// @notice Transfer from any address without calling approve()
@@ -33,5 +35,7 @@ contract Gr8TokenPermit is IGr8TokenPermit, ERC20Permit, Ownable2Step {
     ) external {
         ERC20Permit.permit(_from, _to, _amount, _deadline, _v, _r, _s);
         _transfer(_from, _to, _amount);
+
+        emit TransferedWithPermit(_from, _to, _amount);
     }
 }
