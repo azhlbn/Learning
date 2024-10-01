@@ -62,6 +62,7 @@ contract Gr8TokenPermitTest is Test {
         assertEq(token.nonces(owner), 1);
         assertEq(token.balanceOf(owner), 100 ether - permit.value);
         assertEq(token.balanceOf(spender), permit.value);
+        assertEq(token.allowance(owner, spender), 0);
     }
 
     function prank(address _addr) internal {

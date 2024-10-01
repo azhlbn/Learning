@@ -33,7 +33,15 @@ contract Gr8TokenPermit is IGr8TokenPermit, ERC20Permit, Ownable2Step {
         uint256 _amount,
         uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s
     ) external {
-        ERC20Permit.permit(_from, _to, _amount, _deadline, _v, _r, _s);
+        address spender = msg.sender;
+
+        // check if spender has permission from sender
+        ERC20Permit.permit(_from, spender, _amount, _deadline, _v, _r, _s);
+
+        // reset allowances to avoid double spending
+        _spendAllowance(_from, spender, _amount);
+
+        // send tokens to their destination
         _transfer(_from, _to, _amount);
 
         emit TransferedWithPermit(_from, _to, _amount);
