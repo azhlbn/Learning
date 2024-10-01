@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 
-contract IAirdrop {
+interface  IAirdrop {
     /// @dev Merkle verifying failed
     error NotAllowedToMint();
 

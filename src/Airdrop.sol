@@ -11,7 +11,7 @@ import { IAirdrop } from "src/libraries/IAirdrop.sol";
 
 contract Airdrop is IAirdrop, AccessControl {
     // Target ERC20 token
-    Token public token;
+    Gr8Token public token;
 
     // Total number of mints
     uint256 public totalUsers;
@@ -26,7 +26,7 @@ contract Airdrop is IAirdrop, AccessControl {
     uint256 public constant MINT_PER_USER_LIMIT = 1000;
 
     constructor(address _tokenAddr) {
-        token = Token(_tokenAddr);
+        token = Gr8Token(_tokenAddr);
         grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
@@ -59,10 +59,10 @@ contract Airdrop is IAirdrop, AccessControl {
     }
 }
 
-contract Token is ERC20, AccessControl {
+contract Gr8Token is ERC20, AccessControl {
     bytes32 public immutable AIRDROP;
 
-    constructor(address _airdropAddr) ERC20("Great Token", "GT") {
+    constructor(address _airdropAddr) ERC20("Great Token", "GR8") {
         AIRDROP = keccak256("AIRDROP");
         
         grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
